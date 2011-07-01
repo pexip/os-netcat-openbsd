@@ -1,0 +1,12 @@
+diff -Naurp netcat-openbsd-1.89.orig//netcat.c netcat-openbsd-1.89/netcat.c
+--- netcat-openbsd-1.89.orig//netcat.c	2011-01-04 13:54:23.707910134 -0500
++++ netcat-openbsd-1.89/netcat.c	2011-01-04 14:12:50.499950473 -0500
+@@ -995,6 +995,8 @@ help(void)
+ void
+ usage(int ret)
+ {
++	fprintf(stderr, "This is nc from the netcat-openbsd package. An alternative nc is available\n");
++	fprintf(stderr, "in the netcat-traditional package.\n");
+ 	fprintf(stderr, "usage: nc [-46DdhklnrStUuvzC] [-i interval] [-P proxy_username] [-p source_port]\n");
+ 	fprintf(stderr, "\t  [-s source_ip_address] [-T ToS] [-w timeout] [-X proxy_protocol]\n");
+ 	fprintf(stderr, "\t  [-x proxy_address[:port]] [hostname] [port[s]]\n");
