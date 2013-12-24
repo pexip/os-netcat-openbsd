@@ -1,10 +1,12 @@
 Source: netcat-openbsd
 Section: net
 Priority: optional
-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Maintainer: Pexip AS <packaging@pexip.com>
+XSBC-Pexip-Original-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
 XSBC-Original-Maintainer: Decklin Foster <decklin@red-bean.com>
 Standards-Version: 3.7.3
 Build-Depends: quilt, debhelper (>= 4.0.0), libglib2.0-dev
+XS-Pexip-Upstream: http://archive.ubuntu.com/ubuntu/ precise
 
 Package: netcat-openbsd
 Architecture: any
