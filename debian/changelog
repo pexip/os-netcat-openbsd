@@ -1,3 +1,52 @@
+netcat-openbsd (1.130-3) unstable; urgency=medium
+
+  * Change defaults from "-q0" to "-q-1" to match upstream defaults since the
+    introduction of flag "-N" in version 1.110.  Passing a non-negative value
+    to "-q" now implies "-N"; in particular, "-q0" is now a mere alias for
+    "-N". (Closes: #854292)
+
+ -- Guilhem Moulin <guilhem@guilhem.org>  Fri, 03 Mar 2017 20:32:55 +0100
+
+netcat-openbsd (1.130-2) unstable; urgency=medium
+
+  * Fix handling of delayed exit option (Closes: #849192, LP: #1656785)
+    Thanks to Stefan Bader!
+
+ -- Aron Xu <aron@debian.org>  Thu, 26 Jan 2017 16:51:13 +0800
+
+netcat-openbsd (1.130-1) unstable; urgency=low
+
+  [ Aron Xu ]
+  * Fix cross build, thanks Colin Watson. (Closes: #694844)
+
+  [ Guilhem Moulin ]
+  * Add self to Uploaders.
+  * New upstream release. (Closes: #682444, #751105, #752931, #817050)
+  * Ensure each line ends with CRLF when -C is set, not just the last line
+    from the read buffer.  (Closes: #705223, #711784)
+  * Pause after each line when -i is set, not just after the last line from
+    the read buffer.
+  * debian/control:
+    + Bump Standards-Version to 3.9.8 (no changes necessary).
+    + Upgrade Vcs-Git URI from git:// to https://.
+    + Upgrade Vcs-Browser URI from http:// to https:// and switch to the
+      canonical cgit URI.
+  * debian/compat: Bump debhelper compatibility version to 9.
+  * debian/rules: Set DEB_BUILD_MAINT_OPTIONS to compile and link ELF
+    executables with hardening options enabled.
+  * debian/copyright:
+    + Add missing entries for nc.1 and Makefile.
+    + Replace the format URI http://dep.debian.net/deps/dep5/ by a versioned
+      one https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/ .
+  * debian/patches/0001-port-to-linux-with-libsd.patch: Don't truncate to
+    "Proxy-Authorization" header to 7 bytes.  Thanks to Petros Angelatos for
+    the patch.  (Closes: #792454)
+  * debian/patches/0010-misc-failures-and-features.patch: fix broadcast
+    support (SO_BROADCAST is a socket-level option not a TCP socket option).
+    Thanks to Jakob Wrigley for the patch.  (Closes: #702204)
+
+ -- Guilhem Moulin <guilhem@guilhem.org>  Fri, 11 Nov 2016 02:28:22 +0100
+
 netcat-openbsd (1.105-7) unstable; urgency=low
 
   * Make UNIX dgram sockets work (Closes: #676997).

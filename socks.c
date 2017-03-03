@@ -1,4 +1,4 @@
-/*	$OpenBSD: socks.c,v 1.19 2011/02/12 15:54:18 okan Exp $	*/
+/*	$OpenBSD: socks.c,v 1.21 2015/03/26 21:19:51 tobias Exp $	*/
 
 /*
  * Copyright (c) 1999 Niklas Hallqvist.  All rights reserved.
@@ -231,12 +231,12 @@ socks_connect(const char *host, const char *port,
 		case SOCKS_IPV4:
 			cnt = atomicio(read, proxyfd, buf + 4, 6);
 			if (cnt != 6)
-				err(1, "read failed (%d/6)", cnt);
+				err(1, "read failed (%zu/6)", cnt);
 			break;
 		case SOCKS_IPV6:
 			cnt = atomicio(read, proxyfd, buf + 4, 18);
 			if (cnt != 18)
-				err(1, "read failed (%d/18)", cnt);
+				err(1, "read failed (%zu/18)", cnt);
 			break;
 		default:
 			errx(1, "connection failed, unsupported address type");
@@ -308,8 +308,8 @@ socks_connect(const char *host, const char *port,
 		}
 
 		/* Terminate headers */
-		if ((r = atomicio(vwrite, proxyfd, "\r\n", 2)) != 2)
-			err(1, "write failed (2/%d)", r);
+		if ((cnt = atomicio(vwrite, proxyfd, "\r\n", 2)) != 2)
+			err(1, "write failed (%zu/2)", cnt);
 
 		/* Read status reply */
 		proxy_read_line(proxyfd, buf, sizeof(buf));
