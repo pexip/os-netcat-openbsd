@@ -1,23 +1,82 @@
-netcat-openbsd (1.89-4ubuntu1pexip1) pexip; urgency=low
+netcat-openbsd (1.105-7pexip1) pexip; urgency=low
 
-  * Prepare Pexip packaging
+  * Migrate to Jessie
 
- -- John-Mark Bell <jmb@pexip.com>  Tue, 24 Dec 2013 23:55:54 +0000
+ -- John-Mark Bell <jmb@pexip.com>  Thu, 23 Mar 2017 11:44:19 +0000
 
-netcat-openbsd (1.89-4ubuntu1) oneiric; urgency=low
+netcat-openbsd (1.105-7) unstable; urgency=low
 
-  * Merge from Debian unstable (LP: #803856).  Remaining changes:
-    - debian/patches/dccp.patch: Added support for dccp
-    - debian/patches/netcat-info.patch: Add info about netcat-traditional
-      if you are looking for an option when it is not available.
-      (LP: #590925)
-    - debian/patches/verbose-message-to-stderr.patch: Log "Connection to ..."
-      messages to stderr (LP: #519210)
-    - Modify Maintainer value to match the DebianMaintainerField
-      specification.
-    - Fix build failure with --as-needed.
+  * Make UNIX dgram sockets work (Closes: #676997).
 
- -- Adam Gandelman <adamg@canonical.com>  Fri, 01 Jul 2011 23:34:38 +0200
+ -- Aron Xu <aron@debian.org>  Wed, 13 Jun 2012 09:01:43 +0800
+
+netcat-openbsd (1.105-6) unstable; urgency=low
+
+  * Fix segfaults when using -Ulv (Closes: #668558).
+  * Do not continue to listen on port after accepting connection.
+
+ -- Aron Xu <aron@debian.org>  Thu, 03 May 2012 07:38:59 +0800
+
+netcat-openbsd (1.105-5) unstable; urgency=low
+
+  * Add $LDFLAGS from environment (Closes: #665321). 
+
+ -- Aron Xu <aron@debian.org>  Mon, 26 Mar 2012 01:37:16 +0800
+
+netcat-openbsd (1.105-4) unstable; urgency=high
+
+  * High urgency for fixing RC bug.
+  * Fix readwrite() behaviour (Closes: #662741).
+
+ -- Aron Xu <aron@debian.org>  Tue, 06 Mar 2012 15:18:26 +0800
+
+netcat-openbsd (1.105-3) unstable; urgency=low
+
+  * Clear up symlink of man page.
+  * Use Breaks instead of Conflicts.
+  * Fix minor warnings from man.
+
+ -- Aron Xu <aron@debian.org>  Sun, 19 Feb 2012 14:28:46 +0800
+
+netcat-openbsd (1.105-2) unstable; urgency=low
+
+  * Add missing Build-Depends: pkg-config.
+
+ -- Aron Xu <aron@debian.org>  Sun, 19 Feb 2012 03:59:37 +0800
+
+netcat-openbsd (1.105-1) unstable; urgency=low
+
+  * New upstream CVS snapshot, new maintainer.
+    - Verbose message to strerr (Closes: #570765).
+    - Can use packet's content > 1024 (Closes: #607003).
+    - Replace non-portable echo with printf (Closes: #510372).
+  * debian/patches:
+    - Rearrange existing patches, fix new porting issues.
+    - Option -l and -p are now compatible (Closes: #540073).
+    - Use libbsd instead of glib for strlcpy (Closes: #550611).
+    - Fix build with -Wl,--as-needed (Closes: #604781).
+    - Handling multiple clients subsquently when -k (Closes: #514792).
+    - Replace inet_ntoa with inet_ntop to support IPv6
+      (Closes: #512992).
+    - Modify -q behavior to be compatible with nc.traditional
+      (Closes: #508722, #594614, #606925, #611964).
+    - DCCP and broadcast support.
+    - Arbitrary port list to scan.
+    - Fix misc connection failures
+      (Closes: #579485, #579486, #579487, #579488, #633948).
+    - Improve verbose information and documentations.
+  * debian/rules:
+    - Link nc.openbsd.1 from nc.1 (Closes: #535951).
+    - Enable optional hardening build flags.
+  * debian/control:
+    - Replace glib with libbsd.
+    - Update to use debhelper 8, std-ver 3.9.2.
+    - Priority: important, to make it into base system.
+    - Add Vcs-*.
+  * debian/compat:
+    - Update to 8 from 4.
+
+ -- Aron Xu <aron@debian.org>  Wed, 15 Feb 2012 01:39:04 +0800
 
 netcat-openbsd (1.89-4) unstable; urgency=low
 
@@ -29,49 +88,6 @@ netcat-openbsd (1.89-4) unstable; urgency=low
 
  -- Decklin Foster <decklin@red-bean.com>  Sun, 18 Apr 2010 20:05:08 -0400
 
-netcat-openbsd (1.89-3ubuntu6) oneiric; urgency=low
-
-  * debian/patches/dccp.patch: Added support for dccp
-
- -- Michael Gendelman <genged@gmail.com>  Sat, 11 Jun 2011 01:09:57 +0300
-
-netcat-openbsd (1.89-3ubuntu5) natty; urgency=low
-
-  * debian/patches/quit-timer.patch: Re-enabled, but set default to 0 to match 
-    current behavior.
-  * debian/patches/netcat-info.patch: Add info about netcat-traditional
-    if you are looking for an option when it is not available.
-    (LP: #590925) 
-
- -- Chuck Short <zulcss@ubuntu.com>  Tue, 04 Jan 2011 14:31:12 -0500
-
-netcat-openbsd (1.89-3ubuntu4) natty; urgency=low
-
-  * debian/patches/quit-timer.patch: Drop quit-time.patch as per disccussion on
-    ubuntu-server.  (LP: #590925)
-
- -- Chuck Short <zulcss@ubuntu.com>  Mon, 03 Jan 2011 10:08:24 -0500
-
-netcat-openbsd (1.89-3ubuntu3) natty; urgency=low
-
-  * Fix build failure with --as-needed.
-
- -- Matthias Klose <doko@ubuntu.com>  Fri, 19 Nov 2010 14:40:32 +0100
-
-netcat-openbsd (1.89-3ubuntu2) lucid; urgency=low
-
-  * Log "Connection to ..." messages to stderr (LP: #519210)
-
- -- Stefan Haller <haliner@googlemail.com>  Tue, 09 Feb 2010 10:42:03 +0100
-
-netcat-openbsd (1.89-3ubuntu1) intrepid; urgency=low
-
-  * Merge from debian unstable.
-  * Reinsert quit-timer, but set default to 0 to match current behaviour.
-    (LP: #242350)
-
- -- Soren Hansen <soren@ubuntu.com>  Wed, 25 Jun 2008 18:47:47 +0200
-
 netcat-openbsd (1.89-3) unstable; urgency=low
 
   * Silence -z flag, for compatibility with netcat-traditional (Closes:
@@ -80,16 +96,6 @@ netcat-openbsd (1.89-3) unstable; urgency=low
   * Add missing documentation for -q option to man page.
 
  -- Decklin Foster <decklin@red-bean.com>  Thu, 19 Jun 2008 16:20:01 -0400
-
-netcat-openbsd (1.89-2ubuntu1) hardy; urgency=low
-
-  * Remove quit-timer.patch. It added a bad, bad default behaviour of keeping
-    connections open even though the client had closed the connection. (LP:
-    #201340)
-  * Modify Maintainer value to match the DebianMaintainerField
-    specification.
-
- -- Soren Hansen <soren@ubuntu.com>  Wed, 12 Mar 2008 11:49:28 +0100
 
 netcat-openbsd (1.89-2) unstable; urgency=low
 
@@ -116,4 +122,3 @@ netcat-openbsd (1.89-1) unstable; urgency=low
       back to numeric parsing, so no escaping is needed.
 
  -- Decklin Foster <decklin@red-bean.com>  Mon, 21 Jan 2008 18:41:37 -0500
-
