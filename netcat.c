@@ -1,4 +1,4 @@
-/* $OpenBSD: netcat.c,v 1.105 2012/02/09 06:25:35 lum Exp $ */
+/* $OpenBSD: netcat.c,v 1.130 2015/07/26 19:12:28 chl Exp $ */
 /*
  * Copyright (c) 2001 Eric Jackson <ericj@monkey.org>
  *
@@ -34,25 +34,26 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/uio.h>
 #include <sys/un.h>
 
 #include <netinet/in.h>
-#include <netinet/in_systm.h>
 #include <netinet/tcp.h>
 #include <netinet/ip.h>
 #include <arpa/telnet.h>
 
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <netdb.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <limits.h>
 #include "atomicio.h"
 
 #ifndef SUN_LEN
@@ -64,12 +65,19 @@
 #define PORT_MAX_LEN	6
 #define UNIX_DG_TMP_SOCKET_SIZE	19
 
+#define POLL_STDIN 0
+#define POLL_NETOUT 1
+#define POLL_NETIN 2
+#define POLL_STDOUT 3
+#define BUFSIZE 16384
+
 /* Command Line Options */
 int	dflag;					/* detached, no stdin */
+int	Fflag;					/* fdpass sock to stdout */
 unsigned int iflag;				/* Interval Flag */
-int	jflag;					/* use jumbo frames if we can */
 int	kflag;					/* More than one connect */
 int	lflag;					/* Bind to local port */
+int	Nflag;					/* shutdown() network socket */
 int	nflag;					/* Don't do name look up */
 char   *Pflag;					/* Proxy username */
 char   *pflag;					/* Localport flag */
@@ -85,7 +93,7 @@ int	Iflag;					/* TCP receive buffer size */
 int	Oflag;					/* TCP send buffer size */
 int	Sflag;					/* TCP MD5 signature option */
 int	Tflag = -1;				/* IP Type of Service */
-u_int	rtableid;
+int	rtableid = -1;
 
 int timeout = -1;
 int family = AF_UNSPEC;
@@ -97,6 +105,7 @@ void	build_ports(char *);
 void	help(void);
 int	local_listen(char *, char *, struct addrinfo);
 void	readwrite(int);
+void	fdpass(int nfd) __attribute__((noreturn));
 int	remote_connect(const char *, const char *, struct addrinfo);
 int	timeout_connect(int, const struct sockaddr *, socklen_t);
 int	socks_connect(const char *, const char *, struct addrinfo,
@@ -105,9 +114,12 @@ int	udptest(int);
 int	unix_bind(char *);
 int	unix_connect(char *);
 int	unix_listen(char *);
-void	set_common_sockopts(int);
+void	set_common_sockopts(int, int);
 int	map_tos(char *, int *);
+void	report_connect(const struct sockaddr *, socklen_t);
 void	usage(int);
+ssize_t drainbuf(int, unsigned char *, size_t *);
+ssize_t fillbuf(int, unsigned char *, size_t *);
 
 int
 main(int argc, char *argv[])
@@ -130,8 +142,10 @@ main(int argc, char *argv[])
 	uport = NULL;
 	sv = NULL;
 
+	signal(SIGPIPE, SIG_IGN);
+
 	while ((ch = getopt(argc, argv,
-	    "46DdhI:i:jklnO:P:p:rSs:tT:UuV:vw:X:x:z")) != -1) {
+	    "46DdFhI:i:klNnO:P:p:rSs:tT:UuV:vw:X:x:z")) != -1) {
 		switch (ch) {
 		case '4':
 			family = AF_INET;
@@ -155,6 +169,9 @@ main(int argc, char *argv[])
 		case 'd':
 			dflag = 1;
 			break;
+		case 'F':
+			Fflag = 1;
+			break;
 		case 'h':
 			help();
 			break;
@@ -163,14 +180,14 @@ main(int argc, char *argv[])
 			if (errstr)
 				errx(1, "interval %s: %s", errstr, optarg);
 			break;
-		case 'j':
-			jflag = 1;
-			break;
 		case 'k':
 			kflag = 1;
 			break;
 		case 'l':
 			lflag = 1;
+			break;
+		case 'N':
+			Nflag = 1;
 			break;
 		case 'n':
 			nflag = 1;
@@ -194,7 +211,7 @@ main(int argc, char *argv[])
 			uflag = 1;
 			break;
 		case 'V':
-			rtableid = (unsigned int)strtonum(optarg, 0,
+			rtableid = (int)strtonum(optarg, 0,
 			    RT_TABLEID_MAX, &errstr);
 			if (errstr)
 				errx(1, "rtable %s: %s", errstr, optarg);
@@ -348,17 +365,23 @@ main(int argc, char *argv[])
 			if (s < 0)
 				err(1, NULL);
 			/*
-			 * For UDP, we will use recvfrom() initially
-			 * to wait for a caller, then use the regular
-			 * functions to talk to the caller.
+			 * For UDP and -k, don't connect the socket, let it
+			 * receive datagrams from multiple socket pairs.
 			 */
-			if (uflag) {
+			if (uflag && kflag)
+				readwrite(s);
+			/*
+			 * For UDP and not -k, we will use recvfrom() initially
+			 * to wait for a caller, then use the regular functions
+			 * to talk to the caller.
+			 */
+			else if (uflag && !kflag) {
 				int rv, plen;
 				char buf[16384];
 				struct sockaddr_storage z;
 
 				len = sizeof(z);
-				plen = jflag ? 16384 : 2048;
+				plen = 2048;
 				rv = recvfrom(s, buf, plen, MSG_PEEK,
 				    (struct sockaddr *)&z, &len);
 				if (rv < 0)
@@ -368,11 +391,21 @@ main(int argc, char *argv[])
 				if (rv < 0)
 					err(1, "connect");
 
+				if (vflag)
+					report_connect((struct sockaddr *)&z, len);
+
 				readwrite(s);
 			} else {
 				len = sizeof(cliaddr);
 				connfd = accept(s, (struct sockaddr *)&cliaddr,
 				    &len);
+				if (connfd == -1) {
+					/* For now, all errnos are fatal */
+					err(1, "accept");
+				}
+				if (vflag)
+					report_connect((struct sockaddr *)&cliaddr, len);
+
 				readwrite(connfd);
 				close(connfd);
 			}
@@ -446,7 +479,9 @@ main(int argc, char *argv[])
 				    uflag ? "udp" : "tcp",
 				    sv ? sv->s_name : "*");
 			}
-			if (!zflag)
+			if (Fflag)
+				fdpass(s);
+			else if (!zflag)
 				readwrite(s);
 		}
 	}
@@ -506,7 +541,7 @@ unix_connect(char *path)
 		if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
 			return (-1);
 	}
-	(void)fcntl(s, F_SETFD, 1);
+	(void)fcntl(s, F_SETFD, FD_CLOEXEC);
 
 	memset(&sun, 0, sizeof(struct sockaddr_un));
 	sun.sun_family = AF_UNIX;
@@ -563,11 +598,9 @@ remote_connect(const char *host, const char *port, struct addrinfo hints)
 		    res0->ai_protocol)) < 0)
 			continue;
 
-		if (rtableid) {
-			if (setsockopt(s, SOL_SOCKET, SO_RTABLE, &rtableid,
-			    sizeof(rtableid)) == -1)
-				err(1, "setsockopt SO_RTABLE");
-		}
+		if (rtableid >= 0 && (setsockopt(s, SOL_SOCKET, SO_RTABLE,
+		    &rtableid, sizeof(rtableid)) == -1))
+			err(1, "setsockopt SO_RTABLE");
 
 		/* Bind to a local port or source address if specified. */
 		if (sflag || pflag) {
@@ -585,11 +618,11 @@ remote_connect(const char *host, const char *port, struct addrinfo hints)
 
 			if (bind(s, (struct sockaddr *)ares->ai_addr,
 			    ares->ai_addrlen) < 0)
-				errx(1, "bind failed: %s", strerror(errno));
+				err(1, "bind failed");
 			freeaddrinfo(ares);
 		}
 
-		set_common_sockopts(s);
+		set_common_sockopts(s, res0->ai_family);
 
 		if (timeout_connect(s, res0->ai_addr, res0->ai_addrlen) == 0)
 			break;
@@ -674,17 +707,15 @@ local_listen(char *host, char *port, struct addrinfo hints)
 		    res0->ai_protocol)) < 0)
 			continue;
 
-		if (rtableid) {
-			if (setsockopt(s, IPPROTO_IP, SO_RTABLE, &rtableid,
-			    sizeof(rtableid)) == -1)
-				err(1, "setsockopt SO_RTABLE");
-		}
+		if (rtableid >= 0 && (setsockopt(s, SOL_SOCKET, SO_RTABLE,
+		    &rtableid, sizeof(rtableid)) == -1))
+			err(1, "setsockopt SO_RTABLE");
 
 		ret = setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &x, sizeof(x));
 		if (ret == -1)
 			err(1, NULL);
 
-		set_common_sockopts(s);
+		set_common_sockopts(s, res0->ai_family);
 
 		if (bind(s, (struct sockaddr *)res0->ai_addr,
 		    res0->ai_addrlen) == 0)
@@ -709,64 +740,281 @@ local_listen(char *host, char *port, struct addrinfo hints)
  * Loop that polls on the network file descriptor and stdin.
  */
 void
-readwrite(int nfd)
+readwrite(int net_fd)
 {
-	struct pollfd pfd[2];
-	unsigned char buf[16384];
-	int n, wfd = fileno(stdin);
-	int lfd = fileno(stdout);
-	int plen;
+	struct pollfd pfd[4];
+	int stdin_fd = STDIN_FILENO;
+	int stdout_fd = STDOUT_FILENO;
+	unsigned char netinbuf[BUFSIZE];
+	size_t netinbufpos = 0;
+	unsigned char stdinbuf[BUFSIZE];
+	size_t stdinbufpos = 0;
+	int n, num_fds;
+	ssize_t ret;
 
-	plen = jflag ? 16384 : 2048;
+	/* don't read from stdin if requested */
+	if (dflag)
+		stdin_fd = -1;
 
-	/* Setup Network FD */
-	pfd[0].fd = nfd;
-	pfd[0].events = POLLIN;
+	/* stdin */
+	pfd[POLL_STDIN].fd = stdin_fd;
+	pfd[POLL_STDIN].events = POLLIN;
 
-	/* Set up STDIN FD. */
-	pfd[1].fd = wfd;
-	pfd[1].events = POLLIN;
+	/* network out */
+	pfd[POLL_NETOUT].fd = net_fd;
+	pfd[POLL_NETOUT].events = 0;
 
-	while (pfd[0].fd != -1) {
+	/* network in */
+	pfd[POLL_NETIN].fd = net_fd;
+	pfd[POLL_NETIN].events = POLLIN;
+
+	/* stdout */
+	pfd[POLL_STDOUT].fd = stdout_fd;
+	pfd[POLL_STDOUT].events = 0;
+
+	while (1) {
+		/* both inputs are gone, buffers are empty, we are done */
+		if (pfd[POLL_STDIN].fd == -1 && pfd[POLL_NETIN].fd == -1
+		    && stdinbufpos == 0 && netinbufpos == 0) {
+			close(net_fd);
+			return;
+		}
+		/* both outputs are gone, we can't continue */
+		if (pfd[POLL_NETOUT].fd == -1 && pfd[POLL_STDOUT].fd == -1) {
+			close(net_fd);
+			return;
+		}
+		/* listen and net in gone, queues empty, done */
+		if (lflag && pfd[POLL_NETIN].fd == -1
+		    && stdinbufpos == 0 && netinbufpos == 0) {
+			close(net_fd);
+			return;
+		}
+
+		/* help says -i is for "wait between lines sent". We read and
+		 * write arbitrary amounts of data, and we don't want to start
+		 * scanning for newlines, so this is as good as it gets */
 		if (iflag)
 			sleep(iflag);
 
-		if ((n = poll(pfd, 2 - dflag, timeout)) < 0) {
-			close(nfd);
-			err(1, "Polling Error");
+		/* poll */
+		num_fds = poll(pfd, 4, timeout);
+
+		/* treat poll errors */
+		if (num_fds == -1) {
+			close(net_fd);
+			err(1, "polling error");
 		}
 
-		if (n == 0)
+		/* timeout happened */
+		if (num_fds == 0)
 			return;
 
-		if (pfd[0].revents & POLLIN) {
-			if ((n = read(nfd, buf, plen)) < 0)
-				return;
-			else if (n == 0) {
-				shutdown(nfd, SHUT_RD);
-				pfd[0].fd = -1;
-				pfd[0].events = 0;
-			} else {
-				if (tflag)
-					atelnet(nfd, buf, n);
-				if (atomicio(vwrite, lfd, buf, n) != n)
-					return;
+		/* treat socket error conditions */
+		for (n = 0; n < 4; n++) {
+			if (pfd[n].revents & (POLLERR|POLLNVAL)) {
+				pfd[n].fd = -1;
 			}
+		}
+		/* reading is possible after HUP */
+		if (pfd[POLL_STDIN].events & POLLIN &&
+		    pfd[POLL_STDIN].revents & POLLHUP &&
+		    ! (pfd[POLL_STDIN].revents & POLLIN))
+				pfd[POLL_STDIN].fd = -1;
+
+		if (pfd[POLL_NETIN].events & POLLIN &&
+		    pfd[POLL_NETIN].revents & POLLHUP &&
+		    ! (pfd[POLL_NETIN].revents & POLLIN))
+				pfd[POLL_NETIN].fd = -1;
+
+		if (pfd[POLL_NETOUT].revents & POLLHUP) {
+			if (Nflag)
+				shutdown(pfd[POLL_NETOUT].fd, SHUT_WR);
+			pfd[POLL_NETOUT].fd = -1;
+		}
+		/* if HUP, stop watching stdout */
+		if (pfd[POLL_STDOUT].revents & POLLHUP)
+			pfd[POLL_STDOUT].fd = -1;
+		/* if no net out, stop watching stdin */
+		if (pfd[POLL_NETOUT].fd == -1)
+			pfd[POLL_STDIN].fd = -1;
+		/* if no stdout, stop watching net in */
+		if (pfd[POLL_STDOUT].fd == -1) {
+			if (pfd[POLL_NETIN].fd != -1)
+				shutdown(pfd[POLL_NETIN].fd, SHUT_RD);
+			pfd[POLL_NETIN].fd = -1;
 		}
 
-		if (!dflag && pfd[1].revents & POLLIN) {
-			if ((n = read(wfd, buf, plen)) < 0)
-				return;
-			else if (n == 0) {
-				shutdown(nfd, SHUT_WR);
-				pfd[1].fd = -1;
-				pfd[1].events = 0;
-			} else {
-				if (atomicio(vwrite, nfd, buf, n) != n)
-					return;
+		/* try to read from stdin */
+		if (pfd[POLL_STDIN].revents & POLLIN && stdinbufpos < BUFSIZE) {
+			ret = fillbuf(pfd[POLL_STDIN].fd, stdinbuf,
+			    &stdinbufpos);
+			/* error or eof on stdin - remove from pfd */
+			if (ret == 0 || ret == -1)
+				pfd[POLL_STDIN].fd = -1;
+			/* read something - poll net out */
+			if (stdinbufpos > 0)
+				pfd[POLL_NETOUT].events = POLLOUT;
+			/* filled buffer - remove self from polling */
+			if (stdinbufpos == BUFSIZE)
+				pfd[POLL_STDIN].events = 0;
+		}
+		/* try to write to network */
+		if (pfd[POLL_NETOUT].revents & POLLOUT && stdinbufpos > 0) {
+			ret = drainbuf(pfd[POLL_NETOUT].fd, stdinbuf,
+			    &stdinbufpos);
+			if (ret == -1)
+				pfd[POLL_NETOUT].fd = -1;
+			/* buffer empty - remove self from polling */
+			if (stdinbufpos == 0)
+				pfd[POLL_NETOUT].events = 0;
+			/* buffer no longer full - poll stdin again */
+			if (stdinbufpos < BUFSIZE)
+				pfd[POLL_STDIN].events = POLLIN;
+		}
+		/* try to read from network */
+		if (pfd[POLL_NETIN].revents & POLLIN && netinbufpos < BUFSIZE) {
+			ret = fillbuf(pfd[POLL_NETIN].fd, netinbuf,
+			    &netinbufpos);
+			if (ret == -1)
+				pfd[POLL_NETIN].fd = -1;
+			/* eof on net in - remove from pfd */
+			if (ret == 0) {
+				shutdown(pfd[POLL_NETIN].fd, SHUT_RD);
+				pfd[POLL_NETIN].fd = -1;
 			}
+			/* read something - poll stdout */
+			if (netinbufpos > 0)
+				pfd[POLL_STDOUT].events = POLLOUT;
+			/* filled buffer - remove self from polling */
+			if (netinbufpos == BUFSIZE)
+				pfd[POLL_NETIN].events = 0;
+			/* handle telnet */
+			if (tflag)
+				atelnet(pfd[POLL_NETIN].fd, netinbuf,
+				    netinbufpos);
+		}
+		/* try to write to stdout */
+		if (pfd[POLL_STDOUT].revents & POLLOUT && netinbufpos > 0) {
+			ret = drainbuf(pfd[POLL_STDOUT].fd, netinbuf,
+			    &netinbufpos);
+			if (ret == -1)
+				pfd[POLL_STDOUT].fd = -1;
+			/* buffer empty - remove self from polling */
+			if (netinbufpos == 0)
+				pfd[POLL_STDOUT].events = 0;
+			/* buffer no longer full - poll net in again */
+			if (netinbufpos < BUFSIZE)
+				pfd[POLL_NETIN].events = POLLIN;
+		}
+
+		/* stdin gone and queue empty? */
+		if (pfd[POLL_STDIN].fd == -1 && stdinbufpos == 0) {
+			if (pfd[POLL_NETOUT].fd != -1 && Nflag)
+				shutdown(pfd[POLL_NETOUT].fd, SHUT_WR);
+			pfd[POLL_NETOUT].fd = -1;
+		}
+		/* net in gone and queue empty? */
+		if (pfd[POLL_NETIN].fd == -1 && netinbufpos == 0) {
+			pfd[POLL_STDOUT].fd = -1;
 		}
 	}
+}
+
+ssize_t
+drainbuf(int fd, unsigned char *buf, size_t *bufpos)
+{
+	ssize_t n;
+	ssize_t adjust;
+
+	n = write(fd, buf, *bufpos);
+	/* don't treat EAGAIN, EINTR as error */
+	if (n == -1 && (errno == EAGAIN || errno == EINTR))
+		n = -2;
+	if (n <= 0)
+		return n;
+	/* adjust buffer */
+	adjust = *bufpos - n;
+	if (adjust > 0)
+		memmove(buf, buf + n, adjust);
+	*bufpos -= n;
+	return n;
+}
+
+
+ssize_t
+fillbuf(int fd, unsigned char *buf, size_t *bufpos)
+{
+	size_t num = BUFSIZE - *bufpos;
+	ssize_t n;
+
+	n = read(fd, buf + *bufpos, num);
+	/* don't treat EAGAIN, EINTR as error */
+	if (n == -1 && (errno == EAGAIN || errno == EINTR))
+		n = -2;
+	if (n <= 0)
+		return n;
+	*bufpos += n;
+	return n;
+}
+
+/*
+ * fdpass()
+ * Pass the connected file descriptor to stdout and exit.
+ */
+void
+fdpass(int nfd)
+{
+	struct msghdr mh;
+	union {
+		struct cmsghdr hdr;
+		char buf[CMSG_SPACE(sizeof(int))];
+	} cmsgbuf;
+	struct cmsghdr *cmsg;
+	struct iovec iov;
+	char c = '\0';
+	ssize_t r;
+	struct pollfd pfd;
+
+	/* Avoid obvious stupidity */
+	if (isatty(STDOUT_FILENO))
+		errx(1, "Cannot pass file descriptor to tty");
+
+	bzero(&mh, sizeof(mh));
+	bzero(&cmsgbuf, sizeof(cmsgbuf));
+	bzero(&iov, sizeof(iov));
+
+	mh.msg_control = (caddr_t)&cmsgbuf.buf;
+	mh.msg_controllen = sizeof(cmsgbuf.buf);
+	cmsg = CMSG_FIRSTHDR(&mh);
+	cmsg->cmsg_len = CMSG_LEN(sizeof(int));
+	cmsg->cmsg_level = SOL_SOCKET;
+	cmsg->cmsg_type = SCM_RIGHTS;
+	*(int *)CMSG_DATA(cmsg) = nfd;
+
+	iov.iov_base = &c;
+	iov.iov_len = 1;
+	mh.msg_iov = &iov;
+	mh.msg_iovlen = 1;
+
+	bzero(&pfd, sizeof(pfd));
+	pfd.fd = STDOUT_FILENO;
+	pfd.events = POLLOUT;
+	for (;;) {
+		r = sendmsg(STDOUT_FILENO, &mh, 0);
+		if (r == -1) {
+			if (errno == EAGAIN || errno == EINTR) {
+				if (poll(&pfd, 1, -1) == -1)
+					err(1, "poll");
+				continue;
+			}
+			err(1, "sendmsg");
+		} else if (r != 1)
+			errx(1, "sendmsg: unexpected return value %zd", r);
+		else
+			break;
+	}
+	exit(0);
 }
 
 /* Deal with RFC 854 WILL/WONT DO/DONT negotiation. */
@@ -882,7 +1130,7 @@ udptest(int s)
 }
 
 void
-set_common_sockopts(int s)
+set_common_sockopts(int s, int af)
 {
 	int x = 1;
 
@@ -896,14 +1144,18 @@ set_common_sockopts(int s)
 			&x, sizeof(x)) == -1)
 			err(1, NULL);
 	}
-	if (jflag) {
-		if (setsockopt(s, SOL_SOCKET, SO_JUMBO,
-			&x, sizeof(x)) == -1)
-			err(1, NULL);
-	}
 	if (Tflag != -1) {
-		if (setsockopt(s, IPPROTO_IP, IP_TOS,
-		    &Tflag, sizeof(Tflag)) == -1)
+		int proto, option;
+
+		if (af == AF_INET6) {
+			proto = IPPROTO_IPV6;
+			option = IPV6_TCLASS;
+		} else {
+			proto = IPPROTO_IP;
+			option = IP_TOS;
+		}
+
+		if (setsockopt(s, proto, option, &Tflag, sizeof(Tflag)) == -1)
 			err(1, "set IP ToS");
 	}
 	if (Iflag) {
@@ -967,6 +1219,32 @@ map_tos(char *s, int *val)
 }
 
 void
+report_connect(const struct sockaddr *sa, socklen_t salen)
+{
+	char remote_host[NI_MAXHOST];
+	char remote_port[NI_MAXSERV];
+	int herr;
+	int flags = NI_NUMERICSERV;
+	
+	if (nflag)
+		flags |= NI_NUMERICHOST;
+	
+	if ((herr = getnameinfo(sa, salen,
+	    remote_host, sizeof(remote_host),
+	    remote_port, sizeof(remote_port),
+	    flags)) != 0) {
+		if (herr == EAI_SYSTEM)
+			err(1, "getnameinfo");
+		else
+			errx(1, "getnameinfo: %s", gai_strerror(herr));
+	}
+	
+	fprintf(stderr,
+	    "Connection from %s %s "
+	    "received!\n", remote_host, remote_port);
+}
+
+void
 help(void)
 {
 	usage(0);
@@ -975,11 +1253,13 @@ help(void)
 	\t-6		Use IPv6\n\
 	\t-D		Enable the debug socket option\n\
 	\t-d		Detach from stdin\n\
+	\t-F		Pass socket fd\n\
 	\t-h		This help text\n\
 	\t-I length	TCP receive buffer length\n\
 	\t-i secs\t	Delay interval for lines sent, ports scanned\n\
 	\t-k		Keep inbound sockets open for multiple connects\n\
 	\t-l		Listen mode, for inbound connects\n\
+	\t-N		Shutdown the network socket after EOF on stdin\n\
 	\t-n		Suppress name/port resolutions\n\
 	\t-O length	TCP send buffer length\n\
 	\t-P proxyuser\tUsername for proxy authentication\n\
@@ -1005,7 +1285,7 @@ void
 usage(int ret)
 {
 	fprintf(stderr,
-	    "usage: nc [-46DdhklnrStUuvz] [-I length] [-i interval] [-O length]\n"
+	    "usage: nc [-46DdFhklNnrStUuvz] [-I length] [-i interval] [-O length]\n"
 	    "\t  [-P proxy_username] [-p source_port] [-s source] [-T ToS]\n"
 	    "\t  [-V rtable] [-w timeout] [-X proxy_protocol]\n"
 	    "\t  [-x proxy_address[:port]] [destination] [port]\n");
