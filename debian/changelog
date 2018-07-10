@@ -1,3 +1,9 @@
+netcat-openbsd (1.130-3pexip1) pexip; urgency=medium
+
+  * Migrate to Stretch
+
+ -- John-Mark Bell <jmb@pexip.com>  Tue, 10 Jul 2018 11:32:52 +0000
+
 netcat-openbsd (1.130-3) unstable; urgency=medium
 
   * Change defaults from "-q0" to "-q-1" to match upstream defaults since the
