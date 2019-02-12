@@ -2,11 +2,11 @@ Source: netcat-openbsd
 Section: net
 Priority: important
 Maintainer: Aron Xu <aron@debian.org>
-Uploaders: Guilhem Moulin <guilhem@guilhem.org>
-Standards-Version: 3.9.8
+Uploaders: Guilhem Moulin <guilhem@debian.org>
+Standards-Version: 4.3.0
 Build-Depends: debhelper (>= 9), quilt, libbsd-dev, pkg-config
-Vcs-Git: https://anonscm.debian.org/git/collab-maint/netcat-openbsd.git
-Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/netcat-openbsd.git
+Vcs-Git: https://salsa.debian.org/debian/netcat-openbsd.git
+Vcs-Browser: https://salsa.debian.org/debian/netcat-openbsd
 
 Package: netcat-openbsd
 Architecture: any
