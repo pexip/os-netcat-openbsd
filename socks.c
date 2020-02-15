@@ -1,4 +1,4 @@
-/*	$OpenBSD: socks.c,v 1.21 2015/03/26 21:19:51 tobias Exp $	*/
+/*	$OpenBSD: socks.c,v 1.25 2018/03/27 16:31:10 deraadt Exp $	*/
 
 /*
  * Copyright (c) 1999 Niklas Hallqvist.  All rights reserved.
@@ -109,17 +109,68 @@ proxy_read_line(int fd, char *buf, size_t bufsz)
 	return (off);
 }
 
-static const char *
-getproxypass(const char *proxyuser, const char *proxyhost)
+static void
+getproxypass(const char *proxyuser, const char *proxyhost,
+    char *pw, size_t pwlen)
 {
 	char prompt[512];
-	static char pw[256];
 
 	snprintf(prompt, sizeof(prompt), "Proxy password for %s@%s: ",
 	   proxyuser, proxyhost);
-	if (readpassphrase(prompt, pw, sizeof(pw), RPP_REQUIRE_TTY) == NULL)
+	if (readpassphrase(prompt, pw, pwlen, RPP_REQUIRE_TTY) == NULL)
 		errx(1, "Unable to read proxy passphrase");
-	return (pw);
+}
+
+/*
+ * Error strings adapted from the generally accepted SOCKSv4 spec:
+ *
+ * http://ftp.icm.edu.pl/packages/socks/socks4/SOCKS4.protocol
+ */
+static const char *
+socks4_strerror(int e)
+{
+	switch (e) {
+	case 90:
+		return "Succeeded";
+	case 91:
+		return "Request rejected or failed";
+	case 92:
+		return "SOCKS server cannot connect to identd on the client";
+	case 93:
+		return "Client program and identd report different user-ids";
+	default:
+		return "Unknown error";
+	}
+}
+
+/*
+ * Error strings taken almost directly from RFC 1928.
+ */
+static const char *
+socks5_strerror(int e)
+{
+	switch (e) {
+	case 0:
+		return "Succeeded";
+	case 1:
+		return "General SOCKS server failure";
+	case 2:
+		return "Connection not allowed by ruleset";
+	case 3:
+		return "Network unreachable";
+	case 4:
+		return "Host unreachable";
+	case 5:
+		return "Connection refused";
+	case 6:
+		return "TTL expired";
+	case 7:
+		return "Command not supported";
+	case 8:
+		return "Address type not supported";
+	default:
+		return "Unknown error";
+	}
 }
 
 int
@@ -136,7 +187,6 @@ socks_connect(const char *host, const char *port,
 	struct sockaddr_in *in4 = (struct sockaddr_in *)&addr;
 	struct sockaddr_in6 *in6 = (struct sockaddr_in6 *)&addr;
 	in_port_t serverport;
-	const char *proxypass = NULL;
 
 	if (proxyport == NULL)
 		proxyport = (socksv == -1) ? HTTP_PROXY_PORT : SOCKS_PORT;
@@ -189,7 +239,7 @@ socks_connect(const char *host, const char *port,
 			buf[2] = 0;
 			buf[3] = SOCKS_DOMAIN;
 			buf[4] = hlen;
-			memcpy(buf + 5, host, hlen);			
+			memcpy(buf + 5, host, hlen);
 			memcpy(buf + 5 + hlen, &serverport, sizeof serverport);
 			wlen = 7 + hlen;
 			break;
@@ -225,8 +275,10 @@ socks_connect(const char *host, const char *port,
 		cnt = atomicio(read, proxyfd, buf, 4);
 		if (cnt != 4)
 			err(1, "read failed (%zu/4)", cnt);
-		if (buf[1] != 0)
-			errx(1, "connection failed, SOCKS error %d", buf[1]);
+		if (buf[1] != 0) {
+			errx(1, "connection failed, SOCKSv5 error: %s",
+			    socks5_strerror(buf[1]));
+		}
 		switch (buf[3]) {
 		case SOCKS_IPV4:
 			cnt = atomicio(read, proxyfd, buf + 4, 6);
@@ -261,8 +313,10 @@ socks_connect(const char *host, const char *port,
 		cnt = atomicio(read, proxyfd, buf, 8);
 		if (cnt != 8)
 			err(1, "read failed (%zu/8)", cnt);
-		if (buf[1] != 90)
-			errx(1, "connection failed, SOCKS error %d", buf[1]);
+		if (buf[1] != 90) {
+			errx(1, "connection failed, SOCKSv4 error: %s",
+			    socks4_strerror(buf[1]));
+		}
 	} else if (socksv == -1) {
 		/* HTTP proxy CONNECT */
 
@@ -289,11 +343,14 @@ socks_connect(const char *host, const char *port,
 			err(1, "write failed (%zu/%d)", cnt, r);
 
 		if (authretry > 1) {
+			char proxypass[256];
 			char resp[1024];
 
-			proxypass = getproxypass(proxyuser, proxyhost);
+			getproxypass(proxyuser, proxyhost,
+			    proxypass, sizeof proxypass);
 			r = snprintf(buf, sizeof(buf), "%s:%s",
 			    proxyuser, proxypass);
+			explicit_bzero(proxypass, sizeof proxypass);
 			if (r == -1 || (size_t)r >= sizeof(buf) ||
 			    b64_ntop(buf, strlen(buf), resp,
 			    sizeof(resp)) == -1)
@@ -305,6 +362,8 @@ socks_connect(const char *host, const char *port,
 			r = strlen(buf);
 			if ((cnt = atomicio(vwrite, proxyfd, buf, r)) != r)
 				err(1, "write failed (%zu/%d)", cnt, r);
+			explicit_bzero(proxypass, sizeof proxypass);
+			explicit_bzero(buf, sizeof buf);
 		}
 
 		/* Terminate headers */
