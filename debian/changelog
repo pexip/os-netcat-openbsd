@@ -1,3 +1,9 @@
+netcat-openbsd (1.195-2pexip1) pexip; urgency=medium
+
+  * Migrate to Buster
+
+ -- Vincent Sanders <vince@pexip.com>  Sat, 29 Feb 2020 18:02:55 +0000
+
 netcat-openbsd (1.195-2) unstable; urgency=medium
 
   * Report the listening port correctly in verbose mode. Regression since
