@@ -1,3 +1,76 @@
+netcat-openbsd (1.217-3) unstable; urgency=low
+
+  [ Debian Janitor ]
+  * Rely on pre-initialized dpkg-architecture variables.
+  * Update renamed lintian tag names in lintian overrides.
+
+  [ Guilhem Moulin ]
+  * d/control: Bump Standards-Version to 4.5.1 (no changes necessary).
+  * Add debian/salsa-ci.yml file for GitLab CI.
+  * Rename 'master' (default) branch to 'debian/latest' for DEP-14 compliance.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sat, 19 Dec 2020 00:11:23 +0100
+
+netcat-openbsd (1.217-2) unstable; urgency=low
+
+  * d/patches: Make getnameinfo(3) errors non-fatal in report_sock():
+    report_sock() is used to show the peer's address/name and port when the
+    '-v' flag is set.  Reverse resolution errors need not be fatal.
+    (Closes: #961378)
+
+ -- Guilhem Moulin <guilhem@debian.org>  Fri, 05 Jun 2020 03:16:35 +0200
+
+netcat-openbsd (1.217-1) unstable; urgency=medium
+
+  * d/control:
+    + Set debhelper-compat version in Build-Depends.
+    + Remove quilt from Build-Depends.
+    + Bump Standards-Version to 4.5.0 (no changes necessary).
+    + Set 'Rules-Requires-Root: no'.
+    + Bump debhelper compatibility level to 13.
+  * d/netcat-openbsd.{postinst,prerm}: set -e in the scripts themselves not on
+    the shebang line.
+  * Add lintian override for
+    I: manpage-without-executable usr/share/man/man1/nc_openbsd.1.gz
+  * d/copyright: Set fields Upstream-Name.
+  * d/patches/set-TCP-MD5SIG-correctly-for-client-connections.patch: Fix TCP
+    MD5 signature support.  The feature now requires the TCP_MD5SIG_EXT socket
+    option, available since Linux 4.13.  Thanks to Thomas Habet for report and
+    patch. (Closes: #954934)
+  * d/patches/quit-timer.patch: Make -q0 quit immediately also with UDP
+    sockets.  Many thanks to Duncan Roe for the help in debugging this.
+    (Closes: #817050)
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sat, 23 May 2020 02:04:39 +0200
+
+netcat-openbsd (1.206-1) unstable; urgency=medium
+
+  * New upstream release (from OpenBSD 6.6)
+  * d/patches/use-flags-to-specify-listen-address.patch: Re-enable specifying
+    client socket for UNIX-domain datagram sockets.  Regression introduced in
+    version 1.187-1.  Thanks to astian for the report and patch.
+    (Closes: #935650)
+  * debian/control: Bump Standards-Version to 4.4.1 (no changes necessary).
+
+ -- Guilhem Moulin <guilhem@debian.org>  Mon, 02 Dec 2019 17:10:23 +0100
+
+netcat-openbsd (1.203-2) unstable; urgency=medium
+
+  * Remove d/patches/verbose-numeric-port.patch: as of 1.203 verbose mode for
+    listening sockets is included in upstream's report_sock() function.
+    (Closes: #934330)
+
+ -- Guilhem Moulin <guilhem@debian.org>  Fri, 23 Aug 2019 22:59:19 +0200
+
+netcat-openbsd (1.203-1) unstable; urgency=medium
+
+  * New upstream release (from OpenBSD 6.5)
+  * debian/control: Bump Standards-Version to 4.4.0 (no changes necessary).
+  * debian/control, debian/compat: Bump debhelper compatibility level from 9
+    to 12.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sun, 04 Aug 2019 20:43:25 +0200
+
 netcat-openbsd (1.195-2) unstable; urgency=medium
 
   * Report the listening port correctly in verbose mode. Regression since
