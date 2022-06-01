@@ -5,11 +5,11 @@ get-sev-by-name.patch
 send-crlf.patch
 quit-timer.patch
 udp-scan-timeout.patch
-verbose-numeric-port.patch
 dccp-support.patch
 broadcast-support.patch
 serialized-handling-multiple-clients.patch
 set-TCP-MD5SIG-correctly-for-client-connections.patch
 destination-port-list.patch
 use-flags-to-specify-listen-address.patch
+make-getnameinfo-errors-nonfatal-in-report_sock.patch
 misc-failures-and-features.patch
