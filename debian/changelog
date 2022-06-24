@@ -1,3 +1,9 @@
+netcat-openbsd (1.217-3pexip2) pexip-bullseye; urgency=medium
+
+  * Main bullseye build
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Fri, 24 Jun 2022 14:03:54 +0100
+
 netcat-openbsd (1.217-3pexip1) pexip; urgency=medium
 
   * Initial bullseye build
