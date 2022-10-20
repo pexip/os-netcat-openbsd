@@ -1,3 +1,175 @@
+netcat-openbsd (1.219-1) unstable; urgency=medium
+
+  * New upstream release (from OpenBSD 7.2).
+  * Salsa CI: Remove default configuration file.
+  * Refresh d/patches.
+  * Update standards version to 4.6.1, no changes needed.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Thu, 20 Oct 2022 23:19:17 +0200
+
+netcat-openbsd (1.218-5) unstable; urgency=low
+
+  [ Dirk Jagdmann ]
+  * Add support for abstract namespace sockets in the AF_UNIX family.
+
+  [ Guilhem Moulin ]
+  * d/t/client-server: Add a simple test for sockets in the AF_UNIX family,
+    including those in the abstract namespace on Linux.  We were only checking
+    sockets in the AF_INET family before.
+  * d/p/abstract-unix-domain-socket.patch: Some fixes and improvements upon
+    Dirk's patch.
+  * d/checks: Ensure sockets in the AF_UNIX family are usable up to the
+    sizeof(sun_path) limit, and rejected with ENAMETOOLONG when they exceed it.
+  * d/checks: Add tests for abstract namespace sockets in the AF_UNIX family,
+    incl. for source datagram UNIX domain sockets.
+  * d/p/abstract-unix-domain-socket.patch: Always reject the empty pathname
+    sockets, which on Linux was read as the NUL abstract socket before.  The
+    empty abstract socket is still allowed however, and is specified as "@".
+  * d/p/misc-failures-and-features.patch: Remove double warning in
+    unix_connect().
+  * d/p/misc-failures-and-features.patch: Remove leftover union{}, obsolete
+    since 1.190-1.
+  * d/p/misc-failures-and-features.patch: Factor out Makefile changes to
+    d/p/port-to-linux-with-libbsd.patch.
+  * d/p/misc-failures-and-features.patch: Remove redundant errx() call in
+    unix_connect().
+  * d/p/misc-failures-and-features.patch: Improve error message for UNIX-domain
+    datagram sockets.
+  * d/checks: Use '--' marker to avoid breakage on socket pathnames starting
+    with '-'.
+  * d/checks/netcat: Set LC_ALL=C.
+  * Add d/NEWS entry mentioning abstract sockets support and its implications.
+  * d/p/*: Consolidate usage of '#if defined(FOO)' vs. '#ifdef FOO'.
+  * d/p/build-without-TLS-support.patch: Rename '-DTLS' to the less generic
+    '-DHAVE_TLS'.
+  * d/p/port-to-linux-with-libbsd.patch: Use automatic Makefile variables.
+  * d/checks/02-connect: Check default temporary socket name for datagram
+    sockets.
+  * d/tests/client-server: Check that the socket path is left behind.
+  * Rather than using mkstemp(3) to create unique names for default source
+    datagram UNIX domain sockets, use mkdtemp(3) to create a new empty
+    directory (with mode 0700) and use it to store a fixed socket name.  This
+    fixes a file descriptor leak and a race condition where a new file would be
+    created by an attacker between the unlink(2) and bind(2) calls.  We don't
+    use an abstract socket here since it would open a race condition with the
+    possibility for a local attacker to inject fake server responses.
+  * d/p/*: Minor formatting fixes.
+  * d/p/*: Improve Subject: lines.
+  * d/copyright: Update copyright years.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Fri, 11 Mar 2022 21:54:15 +0100
+
+netcat-openbsd (1.218-4) unstable; urgency=medium
+
+  * d/checks/*: Allow test suite to fail due to the high rate of false
+    positives on some platforms and build environments.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sat, 19 Feb 2022 11:33:57 +0100
+
+netcat-openbsd (1.218-3) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Mon, 06 Dec 2021 00:09:18 +0100
+
+netcat-openbsd (1.218-2+exp6) experimental; urgency=medium
+
+  * d/checks/07-name-resolution: Warn on resolution failures.
+  * d/checks/07-name-resolution: Prefer `getent ahosts/ahostsv4/ahostsv6`.
+    Regression from 1.218-2+exp5.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sun, 05 Dec 2021 01:21:26 +0100
+
+netcat-openbsd (1.218-2+exp5) experimental; urgency=medium
+
+  * d/checks/07-name-resolution: Only use `getent ahosts…` for AF_INET.  Using
+    it for AF_UNSPEC yields FTBFS on landau (sparc64 buildd).
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sun, 05 Dec 2021 00:07:02 +0100
+
+netcat-openbsd (1.218-2+exp4) experimental; urgency=medium
+
+  * d/checks/07-name-resolution: Also check ip6-localhost.
+  * d/checks/07-name-resolution: Support empty `getent ahostsv6 localhost`
+    output (attempt to fix FTBFS on the reproducible-builds build daemons).
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sat, 04 Dec 2021 17:12:41 +0100
+
+netcat-openbsd (1.218-2+exp3) experimental; urgency=medium
+
+  * d/checks/07-name-resolution: Dump resolver status on failure.
+    Unfortunately that test makes r-b unhappy and it's unclear why, so let's
+    dump some extra information on error.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Tue, 23 Nov 2021 19:06:31 +0100
+
+netcat-openbsd (1.218-2+exp2) experimental; urgency=low
+
+  * Minor d/rules refactoring.
+  * Demote setsockopt SO_REUSEADDR/SO_REUSEPORT fatal failures to warnings.
+    `nc -l` was unusable (ENOPROTOOPT) on platforms such as GNU Hurd which
+    define but don't implement SO_REUSEPORT.  dh_auto_test failed on these
+    platforms since d/t/client-server calls `nc -l`.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Mon, 15 Nov 2021 19:44:11 +0100
+
+netcat-openbsd (1.218-2+exp1) experimental; urgency=low
+
+  * d/control: Reflow Description field.
+  * d/copyright: Add self under "Files: debian/*" stanza.
+  * d/checks/07-name-resolution: Dump resolution results on error.  This
+    should make FTBFS troubleshooting on some buildds easier.
+  * Also run d/t/client-server after dh_auto_test.
+  * Skip extended test suite on hppa and ia64.
+  * DEP-8, dh_auto_test: Run d/t/client-server also on non-Linux platforms.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sun, 14 Nov 2021 17:17:26 +0100
+
+netcat-openbsd (1.218-2) unstable; urgency=low
+
+  * d/checks: Fix FTBS on some platforms:
+    +  Skip entire test suite (and also d/t/client-server) on non-Linux
+       platforms.  There are Linux-only dependencies, such as strace(1) and
+       ss(8).
+    + Don't make any asumption regarding v4/v6 preference when resolving
+      localhost.
+    + Don't assume getent(1) produces space-separated output.
+    + Replace strace's '-Ianywhere' with '-I1' so we can run with older strace
+      versions.
+   + Skip TCP MD5 signatures test on unsupported platforms.  (It appears hppa
+     chokes on the readpassphrase injection via LD_PRELOAD, and TCP MD5
+     signature seems to be disabled in the riscv64 buildd.)
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sun, 14 Nov 2021 04:47:57 +0100
+
+netcat-openbsd (1.218-1) unstable; urgency=low
+
+  * New upstream release (from OpenBSD 7.0).
+  * d/rules refactoring.
+  * d/netcat-openbsd.{postinst,prerm}: Explicitly exit with status code 0.
+  * Bump Standards-Version to 4.6.0 (no changes needed).
+  * Remove unused lintian override spare-manual-page.
+  * d/checks/*: Add test suite for the upstream codebase as well as the Debian-
+    specific patches.  This adds Build-Depends: iproute2, procps, strace
+    (unless under 'nocheck' profile).  Parsing strace(1) output isn't ideal of
+    course... but we can't think of a better way to do these checks and it's
+    hopefully fine for dh_auto_test (the DEP-8 tests don't rely on that).
+  * Add DEP-8 tests: 1/ ensure nc(1) is nc.openbsd(1), and 2/ basic
+    client/server communication test.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sat, 13 Nov 2021 21:52:14 +0100
+
+netcat-openbsd (1.217.1-1) unstable; urgency=medium
+
+  * New upstream release (from OpenBSD 6.9).
+  * Refresh debian/README.source to reflect current workflow.
+  * Replace Aron Xu as Maintainer at Aron's request.  Many thanks to him for
+    his work on the netcat-openbsd package!
+  * d/p/port-to-linux-with-libsd.patch, d/p/build-without-TLS-support.patch:
+    Add "Forwarded: not-needed" annotation.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Mon, 16 Aug 2021 03:14:05 +0200
+
 netcat-openbsd (1.217-3) unstable; urgency=low
 
   [ Debian Janitor ]

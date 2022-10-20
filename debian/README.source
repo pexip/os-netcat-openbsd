@@ -5,7 +5,7 @@ Importing a new upstream release
    $ OPENBSD_VERSION=6.2
    $ DESTDIR="$XDG_RUNTIME_DIR"
    $ rsync -v rsync://ftp.eu.openbsd.org/OpenBSD/$OPENBSD_VERSION/{src.tar.gz,SHA256.sig} "$DESTDIR"
- 
+
  2. Verify its integrity (requires 'signify-openbsd' and 'signify-openbsd-keys' packages)
 
    $ PUBKEY="/usr/share/signify-openbsd-keys/openbsd-${OPENBSD_VERSION//./}-base.pub"
@@ -24,14 +24,13 @@ Importing a new upstream release
    $ git commit -m "Imported Upstream version $NETCAT_VERSION" -m "From OpenBSD $OPENBSD_VERSION"
    $ git tag --sign -m "Upstream version $NETCAT_VERSION" "upstream/$NETCAT_VERSION"
 
- 4. Merge to master branch
+ 4. Merge to debian/latest branch
 
-   $ git checkout master
+   $ git checkout debian/latest
    $ git merge -m "Updated version $NETCAT_VERSION from 'upstream/$NETCAT_VERSION'" "upstream/$NETCAT_VERSION"
-   $ export QUILT_PATCHES=debian/patches
-   $ quilt push
-   $ quilt refresh --diffstat --no-timestamps --no-index -upab
-   ## […]
    $ dch -v "$NETCAT_VERSION-1"
+   $ gbp pq drop
+   $ gbp pq rebase
+   $ gbp pq export
 
  -- Guilhem Moulin <guilhem@debian.org>  Fri, 09 Jun 2017 16:41:04 +0200
