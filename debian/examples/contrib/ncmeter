@@ -20,14 +20,14 @@ if [ $# -ne 0 -a $# -ne 2 ]; then
 	echo
 	echo "  On the transmitter side:"
 	echo "    $me <receivers ip-address> <amount of data>"
-	echo 
+	echo
 	echo "  The <amount of data> is to be given in byte but you"
 	echo "  also can supply M or K for MegaByte and KiloByte."
 	echo "  Example: $me 10.1.1.3 20M"
 	echo
 	echo "  On the receiver side:"
 	echo "    $me"
-	echo 
+	echo
 	echo "  Start $me on the receiver side before starting it"
 	echo "  on the transmitter side. Stop the receiver by pressing"
 	echo "  and holding Ctrl-C."
@@ -39,10 +39,10 @@ if [ $# -eq 0 ]; then
 	# yes, we are
 	while true; do
 		echo "waiting to receive data... (quit: press and hold Ctrl-C)"
-		
+
 		# wait for data and count bytes
 		AMOUNT=`nc -v -w 120 -l -p $NCPORT | wc -c | awk '{print $1}'`
-		
+
 		# display amount of data received
 		echo $AMOUNT byte of data received
 		echo
@@ -61,7 +61,7 @@ AMOUNT=`echo $2|sed s/[mM]/\*1048576/g | sed s/[kK]/\*1024/g | bc`
 
 # send data and measure the time spent
 TEMP=/tmp/$me.tx
-( time -p dd if=/dev/zero bs=$AMOUNT count=1 2>/dev/null | nc -v -w $WAIT $1 $NCPORT ) 2>"$TEMP" || cat "$TEMP" 
+( time -p dd if=/dev/zero bs=$AMOUNT count=1 2>/dev/null | nc -v -w $WAIT $1 $NCPORT ) 2>"$TEMP" || cat "$TEMP"
 
 # read the time needed
 REAL=`grep "^real" "$TEMP" | awk '{print $2}'`
