@@ -1,3 +1,9 @@
+netcat-openbsd (1.219-1pexip1) pexip-bookworm; urgency=medium
+
+  * Initial bookworm build
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Thu, 16 Nov 2023 10:13:07 +0000
+
 netcat-openbsd (1.219-1) unstable; urgency=medium
 
   * New upstream release (from OpenBSD 7.2).
