@@ -12,7 +12,7 @@ else
 fi <"$ERR"
 
 if [ -z "$NETCAT_DGRAM" ]; then
-    $NC -z 127.0.0.1 $PORT
+    $NC -z 127.0.0.1 $PORT 2>/dev/null
     grep -Fq "Connection received on 127.0.0.1 " <"$ERR"
     wait $PID
 else

@@ -91,8 +91,8 @@ else
         # server address+port but that should be seldom enough
         $NC "${ARGS[@]}" <<<"foo"
 
-        # make sure '-v' reports it can't connect
-        if $NC -v "${ARGS[@]}" <<<"bar" 2>/dev/null; then
+        # make sure '-vz' reports it can't connect
+        if $NC -vz "${ARGS[@]}" <<<"bar" 2>/dev/null; then
             printf "ERROR at line %d: Could reconnect!\\n" $LINENO >&2
             exit 1
         fi

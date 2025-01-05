@@ -39,7 +39,7 @@ ifeq ($(DEB_HOST_ARCH_OS),linux)
 endif
 
 execute_after_dh_install:
-	mv -T $(prefix)/bin/nc $(prefix)/bin/nc.openbsd
+	mv -T $(prefix)/usr/bin/nc $(prefix)/usr/bin/nc.openbsd
 
 execute_after_dh_installman:
 	mv -T $(man1dir)/nc.1 $(man1dir)/nc_openbsd.1

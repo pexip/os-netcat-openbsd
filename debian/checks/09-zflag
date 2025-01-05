@@ -19,6 +19,7 @@ fi
 
 test -f "$OUT" -a -f "$ERR"
 test ! -s "$OUT"
+sed -ri "/^Connection to 127\\.0\\.0\\.1 $PORT port \\[[^]]+\\] succeeded!$/d" -- "$ERR"
 test ! -s "$ERR"
 
 
