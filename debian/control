@@ -13,7 +13,7 @@ Build-Depends: debhelper-compat (= 13),
                strace [linux-any] <!nocheck>
 Vcs-Git: https://salsa.debian.org/debian/netcat-openbsd.git -b debian/latest
 Vcs-Browser: https://salsa.debian.org/debian/netcat-openbsd
-XS-Pexip-Upstream: http://deb.debian.org/debian/ bookworm
+XS-Pexip-Upstream: http://deb.debian.org/debian/ trixie
 
 Package: netcat-openbsd
 Architecture: any
