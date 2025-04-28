@@ -1,3 +1,53 @@
+netcat-openbsd (1.228-1) unstable; urgency=medium
+
+  * New upstream release (from OpenBSD 7.6).
+  * d/control:
+    + Update standards version to 4.7.0, no changes needed.
+    + Replace obsolete Build-Depends: pkg-config with pkgconf.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sun, 05 Jan 2025 01:42:59 +0100
+
+netcat-openbsd (1.226-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * Install nc.openbsd into /usr/bin. (Closes: #1059412)
+    Keep update-alternatives calls unchanged to preserve pre-existing
+    user/admin configuration.
+
+ -- Chris Hofstaedtler <zeha@debian.org>  Mon, 22 Apr 2024 01:39:53 +0200
+
+netcat-openbsd (1.226-1) unstable; urgency=medium
+
+  [ Guilhem Moulin ]
+  * New upstream release (from OpenBSD 7.4).
+
+ -- Guilhem Moulin <guilhem@debian.org>  Mon, 16 Oct 2023 19:31:08 +0200
+
+netcat-openbsd (1.225-1) unstable; urgency=medium
+
+  [ Debian Janitor ]
+  * Remove constraints unnecessary since buster (oldstable):
+    + netcat-openbsd: Drop versioned constraint on netcat in Replaces.
+    + netcat-openbsd: Drop versioned constraint on netcat in Breaks.
+
+  [ Guilhem Moulin ]
+  * New upstream release (from OpenBSD 7.3).
+    + In UDP mode, do not test the connection (by writing "XXX" junk) when
+      ‘-z’ is unset and the standard input is not a TTY.  This slightly
+      improves the situation with respect to #747646.
+  * Update standards version to 4.6.2, no changes needed.
+  * d/README.source:
+    + rsync: Replace ‘-v’ flag with ‘-P’.
+    + Advertize use of gbp-dch(1).
+    + Use a secondary parent in the upstream branch.  (This is useful to track
+      upstream activity.)
+  * Refresh d/patches.
+  * d/p/udp-scan-timeout.patch: Call connection_info() and udptest() call when
+    ‘-z’ flag is set.  This is the upstream behavior.
+  * d/checks/04-kflag-udp: Pass ‘-z’ in the UDP reconnection test.
+
+ -- Guilhem Moulin <guilhem@debian.org>  Sat, 10 Jun 2023 22:43:37 +0200
+
 netcat-openbsd (1.219-1+pexip24u3) pexip-bookworm; urgency=medium
 
   * New versioning scheme
