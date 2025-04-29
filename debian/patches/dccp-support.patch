@@ -30,7 +30,7 @@ index fbcc098..da37f06 100644
  Only scan for listening daemons, without sending any data to them.
  Cannot be used together with
 diff --git a/netcat.c b/netcat.c
-index 47259d6..efa6618 100644
+index dd893ac..1c50615 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -146,6 +146,7 @@ int	rflag;					/* Random ports flag */
@@ -47,7 +47,7 @@ index 47259d6..efa6618 100644
  
 +char *proto_name(int, int);
  static int connect_with_timeout(int, const struct sockaddr *, socklen_t, int);
- static void quit();
+ static void quit(int sig);
  
 @@ -261,7 +263,7 @@ main(int argc, char *argv[])
  #ifdef HAVE_TLS

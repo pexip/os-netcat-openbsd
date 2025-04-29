@@ -44,7 +44,7 @@ index 80c654c..d30389a 100644
  .It Fl T Ar keyword
  Change the IPv4 TOS/IPv6 traffic class value.
 diff --git a/netcat.c b/netcat.c
-index 83a36b2..509b01f 100644
+index bef27a4..0caba28 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -507,27 +507,42 @@ main(int argc, char *argv[])

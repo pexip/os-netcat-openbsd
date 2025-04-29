@@ -7,7 +7,7 @@ Subject: Serialized handling of multiple clients
  1 file changed, 8 insertions(+), 9 deletions(-)
 
 diff --git a/netcat.c b/netcat.c
-index 099e615..7e38132 100644
+index 99747a2..8291173 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -713,7 +713,10 @@ main(int argc, char *argv[])

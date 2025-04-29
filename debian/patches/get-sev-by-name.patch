@@ -7,7 +7,7 @@ Subject: Add ability to specify destination ports by name
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/netcat.c b/netcat.c
-index a30cb36..f52088a 100644
+index 461e2bd..2dc1abd 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -1700,11 +1700,16 @@ strtoport(char *portstr, int udp)
