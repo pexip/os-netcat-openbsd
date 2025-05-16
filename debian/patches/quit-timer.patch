@@ -36,7 +36,7 @@ index 478fedd..fbcc098 100644
  Choose source and/or destination ports randomly
  instead of sequentially within a range or in the order that the system
 diff --git a/netcat.c b/netcat.c
-index 76bd3ab..5ead827 100644
+index 2f3e9a8..03d339c 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -139,6 +139,7 @@ int	Nflag;					/* shutdown() network socket */
@@ -51,7 +51,7 @@ index 76bd3ab..5ead827 100644
  #endif
  
  static int connect_with_timeout(int, const struct sockaddr *, socklen_t, int);
-+static void quit();
++static void quit(int sig);
  
  int
  main(int argc, char *argv[])
@@ -155,7 +155,7 @@ index 76bd3ab..5ead827 100644
 + * quit()
 + * handler for a "-q" timeout (exit 0 instead of 1)
 + */
-+static void quit()
++static void quit(__attribute__((unused)) int sig)
 +{
 +	exit(0);
 +}

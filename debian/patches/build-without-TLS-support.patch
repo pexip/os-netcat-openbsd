@@ -236,7 +236,7 @@ index 596bd8e..2eb732e 100644
  .Pp
  .Dl $ nc -u host.example.com 53
 diff --git a/netcat.c b/netcat.c
-index 216d3ec..d8d3acc 100644
+index d23e566..bec6e46 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -99,7 +99,9 @@

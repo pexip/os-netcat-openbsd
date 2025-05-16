@@ -51,7 +51,7 @@ index 49a3d4d..80c654c 100644
  Alternatively, it might be useful to know which server software
  is running, and which versions.
 diff --git a/netcat.c b/netcat.c
-index 9a73a7c..83a36b2 100644
+index 990c31b..bef27a4 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -191,7 +191,7 @@ int minttl = -1;

@@ -56,7 +56,7 @@ index 76b6dc0..596bd8e 100644
  .Cm netcontrol ,
  .Cm throughput ,
 diff --git a/netcat.c b/netcat.c
-index a25c4f1..216d3ec 100644
+index 8c60fd1..d23e566 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -32,6 +32,8 @@

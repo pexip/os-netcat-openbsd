@@ -29,7 +29,7 @@ index d30389a..8285c10 100644
  Use UDP instead of TCP.
  Cannot be used together with
 diff --git a/netcat.c b/netcat.c
-index 14264eb..482f977 100644
+index 061a774..2f8890b 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -98,6 +98,7 @@

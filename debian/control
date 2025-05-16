@@ -3,7 +3,7 @@ Section: net
 Priority: important
 Maintainer: Pexip AS <packaging@pexip.com>
 XSBC-Pexip-Original-Maintainer: Guilhem Moulin <guilhem@debian.org>
-Standards-Version: 4.7.0
+Standards-Version: 4.7.2
 Rules-Requires-Root: no
 Build-Depends: debhelper-compat (= 13),
                iproute2 [linux-any] <!nocheck>,

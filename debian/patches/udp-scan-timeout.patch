@@ -7,7 +7,7 @@ Subject: Fix UDP scan timeout
  1 file changed, 14 insertions(+), 7 deletions(-)
 
 diff --git a/netcat.c b/netcat.c
-index 5ead827..47259d6 100644
+index 03d339c..dd893ac 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -129,6 +129,8 @@

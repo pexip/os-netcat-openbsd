@@ -30,7 +30,7 @@ index da37f06..49a3d4d 100644
  Send CRLF as line-ending.  Each line feed (LF) character from the input
  data is translated into CR+LF before being written to the socket.  Line
 diff --git a/netcat.c b/netcat.c
-index efa6618..099e615 100644
+index 1c50615..99747a2 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -132,6 +132,7 @@

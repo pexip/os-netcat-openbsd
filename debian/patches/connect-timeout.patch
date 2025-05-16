@@ -7,7 +7,7 @@ Subject: Fix connect() timeout
  1 file changed, 77 insertions(+), 5 deletions(-)
 
 diff --git a/netcat.c b/netcat.c
-index d8d3acc..a30cb36 100644
+index bec6e46..461e2bd 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -90,6 +90,7 @@

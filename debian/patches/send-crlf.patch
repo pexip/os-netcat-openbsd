@@ -42,7 +42,7 @@ index 2eb732e..478fedd 100644
  MAIL FROM:<user@host.example.com>
  RCPT TO:<user2@host.example.com>
 diff --git a/netcat.c b/netcat.c
-index f52088a..76bd3ab 100644
+index 2dc1abd..2f3e9a8 100644
 --- a/netcat.c
 +++ b/netcat.c
 @@ -166,6 +166,8 @@ char	*tls_expecthash;			/* required hash of peer cert */
